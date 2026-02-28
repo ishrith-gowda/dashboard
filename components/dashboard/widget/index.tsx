@@ -53,7 +53,7 @@ export default function Widget({ widgetData }: WidgetProps) {
           <span>{dateInfo.restOfDate}</span>
         </div>
         <div className="text-center">
-          <div className="text-5xl font-display" suppressHydrationWarning>
+          <div className="text-5xl font-display font-bold tracking-tight" suppressHydrationWarning>
             {formatTime(currentTime)}
           </div>
         </div>

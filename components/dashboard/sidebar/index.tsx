@@ -35,45 +35,45 @@ import LockIcon from "@/components/icons/lock";
 import Image from "next/image";
 import { useIsV0 } from "@/lib/v0-context";
 
-// This is sample data for the sidebar
+// Navigation data for healthcare PA dashboard
 const data = {
   navMain: [
     {
-      title: "Tools",
+      title: "Navigation",
       items: [
         {
-          title: "Overview",
+          title: "Dashboard",
           url: "/",
           icon: BracketsIcon,
           isActive: true,
         },
         {
-          title: "Laboratory",
-          url: "/laboratory",
+          title: "Patients",
+          url: "/patients",
           icon: AtomIcon,
           isActive: false,
         },
         {
-          title: "Devices",
-          url: "/devices",
+          title: "Eligibility",
+          url: "/eligibility",
           icon: ProcessorIcon,
           isActive: false,
         },
         {
-          title: "Security",
-          url: "/security",
+          title: "PA Requests",
+          url: "/pa-requests",
           icon: CuteRobotIcon,
           isActive: false,
         },
         {
-          title: "Communication",
-          url: "/communication",
+          title: "Agent Activity",
+          url: "/agent-activity",
           icon: EmailIcon,
           isActive: false,
         },
         {
-          title: "Admin Settings",
-          url: "/admin",
+          title: "Mock Portal",
+          url: "/mock-portal",
           icon: GearIcon,
           isActive: false,
           locked: true,
@@ -82,12 +82,12 @@ const data = {
     },
   ],
   desktop: {
-    title: "Desktop (Online)",
+    title: "System (Online)",
     status: "online",
   },
   user: {
-    name: "KRIMSON",
-    email: "krimson@joyco.studio",
+    name: "DR. S. CHEN",
+    email: "s.chen@vitalink.health",
     avatar: "/avatars/user_krimson.png",
   },
 };
@@ -101,12 +101,12 @@ export function DashboardSidebar({
   return (
     <Sidebar {...props} className={cn("py-sides", className)}>
       <SidebarHeader className="rounded-t-lg flex gap-3 flex-row rounded-b-none">
-        <div className="flex overflow-clip size-12 shrink-0 items-center justify-center rounded bg-sidebar-primary-foreground/10 transition-colors group-hover:bg-sidebar-primary text-sidebar-primary-foreground">
-          <MonkeyIcon className="size-10 group-hover:scale-[1.7] origin-top-left transition-transform" />
+        <div className="flex overflow-clip size-12 shrink-0 items-center justify-center rounded bg-primary transition-colors group-hover:bg-primary/90 text-primary-foreground">
+          <MonkeyIcon className="size-7 group-hover:scale-110 transition-transform" />
         </div>
         <div className="grid flex-1 text-left text-sm leading-tight">
-          <span className="text-2xl font-display">M.O.N.K.Y.</span>
-          <span className="text-xs uppercase">The OS for Rebels</span>
+          <span className="text-2xl font-display font-bold tracking-tight">VITALINK</span>
+          <span className="text-xs uppercase text-muted-foreground">PA Command Center</span>
         </div>
       </SidebarHeader>
 
@@ -176,7 +176,7 @@ export function DashboardSidebar({
               <SidebarMenuItem>
                 <Popover>
                   <PopoverTrigger className="flex gap-0.5 w-full group cursor-pointer">
-                    <div className="shrink-0 flex size-14 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground overflow-clip">
+                    <div className="shrink-0 flex size-14 items-center justify-center rounded-lg bg-primary text-primary-foreground overflow-clip">
                       <Image
                         src={data.user.avatar}
                         alt={data.user.name}
@@ -186,7 +186,7 @@ export function DashboardSidebar({
                     </div>
                     <div className="group/item pl-3 pr-1.5 pt-2 pb-1.5 flex-1 flex bg-sidebar-accent hover:bg-sidebar-accent-active/75 items-center rounded group-data-[state=open]:bg-sidebar-accent-active group-data-[state=open]:hover:bg-sidebar-accent-active group-data-[state=open]:text-sidebar-accent-foreground">
                       <div className="grid flex-1 text-left text-sm leading-tight">
-                        <span className="truncate text-xl font-display">
+                        <span className="truncate text-xl font-display font-bold tracking-tight">
                           {data.user.name}
                         </span>
                         <span className="truncate text-xs uppercase opacity-50 group-hover/item:opacity-100">

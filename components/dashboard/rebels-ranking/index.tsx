@@ -11,9 +11,9 @@ interface RebelsRankingProps {
 export default function RebelsRanking({ rebels }: RebelsRankingProps) {
   return (
     <DashboardCard
-      title="REBELS RANKING"
+      title="TEAM PERFORMANCE"
       intent="default"
-      addon={<Badge variant="outline-warning">2 NEW</Badge>}
+      addon={<Badge variant="outline-warning">THIS WEEK</Badge>}
     >
       <div className="space-y-4">
         {rebels.map((rebel) => (
@@ -58,7 +58,7 @@ export default function RebelsRanking({ rebels }: RebelsRankingProps) {
                     <div className="flex items-baseline gap-2">
                       <span
                         className={cn(
-                          "font-display",
+                          "font-display font-bold tracking-tight",
                           rebel.featured
                             ? "text-xl md:text-2xl"
                             : "text-lg md:text-xl"
@@ -71,7 +71,7 @@ export default function RebelsRanking({ rebels }: RebelsRankingProps) {
                       </span>
                     </div>
                     <Badge variant={rebel.featured ? "default" : "secondary"}>
-                      {rebel.points} POINTS
+                      {rebel.points} CASES
                     </Badge>
                   </div>
                   {rebel.subtitle && (

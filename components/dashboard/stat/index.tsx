@@ -69,7 +69,7 @@ export default function DashboardStat({
 
       <CardContent className="bg-accent flex-1 pt-2 md:pt-6 overflow-clip relative">
         <div className="flex items-center">
-          <span className="text-4xl md:text-5xl font-display">
+          <span className="text-4xl md:text-5xl font-display font-bold tracking-tight">
             {isNumeric ? (
               <NumberFlow
                 value={numericValue}
@@ -153,7 +153,7 @@ const Arrow = ({ direction, index }: ArrowProps) => {
         animationTimingFunction: "cubic-bezier(0.4, 0.0, 0.2, 1)",
       }}
       className={cn(
-        "text-center text-5xl size-14 font-display leading-none block",
+        "text-center text-5xl size-14 font-display font-bold leading-none block",
         "transition-all duration-700 ease-out",
         "animate-marquee-pulse",
 

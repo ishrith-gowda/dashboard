@@ -1,154 +1,93 @@
 {
   "dashboardStats": [
     {
-      "label": "ISSUES COMPLETED",
-      "value": "49%",
-      "description": "WEEKLY SCOPE",
+      "label": "PA APPROVALS",
+      "value": "87%",
+      "description": "THIS WEEK",
       "intent": "positive",
       "icon": "gear",
       "direction": "up"
     },
     {
-      "label": "MINUTES LOST",
-      "value": "642'",
-      "description": "IN MEETINGS AND RABBIT HOLES",
-      "intent": "negative",
+      "label": "AVG TURNAROUND",
+      "value": "2.4h",
+      "description": "TIME TO DECISION",
+      "intent": "positive",
       "icon": "proccesor",
       "direction": "down"
     },
     {
-      "label": "ACCIDENTS",
-      "value": "0",
-      "description": "THE CLIENT ALWAYS IS RIGHT",
+      "label": "PENDING REVIEWS",
+      "value": "12",
+      "description": "AWAITING DETERMINATION",
       "intent": "neutral",
       "icon": "boom",
-      "tag": "4 weeks 🔥"
+      "tag": "3 urgent"
     }
   ],
   "chartData": {
     "week": [
-      {
-        "date": "06/07",
-        "sales": 50000,
-        "spendings": 30000,
-        "coffee": 10000
-      },
-      {
-        "date": "07/07",
-        "sales": 250000,
-        "spendings": 15000,
-        "coffee": 30000
-      },
-      {
-        "date": "08/07",
-        "sales": 200000,
-        "spendings": 50000,
-        "coffee": 25000
-      },
-      {
-        "date": "09/07",
-        "sales": 280000,
-        "spendings": 60000,
-        "coffee": 45000
-      },
-      {
-        "date": "10/07",
-        "sales": 120000,
-        "spendings": 20000,
-        "coffee": 15000
-      },
-      {
-        "date": "11/07",
-        "sales": 180000,
-        "spendings": 55000,
-        "coffee": 20000
-      },
-      {
-        "date": "12/07",
-        "sales": 500000,
-        "spendings": 35000,
-        "coffee": 20000
-      },
-      {
-        "date": "13/07",
-        "sales": 130000,
-        "spendings": 60000,
-        "coffee": 10000
-      }
+      { "date": "Mon", "submitted": 42, "approved": 35, "denied": 4 },
+      { "date": "Tue", "submitted": 58, "approved": 48, "denied": 6 },
+      { "date": "Wed", "submitted": 51, "approved": 44, "denied": 3 },
+      { "date": "Thu", "submitted": 67, "approved": 56, "denied": 7 },
+      { "date": "Fri", "submitted": 45, "approved": 38, "denied": 5 },
+      { "date": "Sat", "submitted": 12, "approved": 10, "denied": 1 },
+      { "date": "Sun", "submitted": 8, "approved": 7, "denied": 0 }
     ],
     "month": [
-      { "date": "Jan", "spendings": 45000, "sales": 180000, "coffee": 25000 },
-      { "date": "Feb", "spendings": 30000, "sales": 120000, "coffee": 20000 },
-      { "date": "Mar", "spendings": 65000, "sales": 280000, "coffee": 35000 },
-      { "date": "Apr", "spendings": 25000, "sales": 160000, "coffee": 18000 },
-      { "date": "May", "spendings": 80000, "sales": 350000, "coffee": 45000 },
-      { "date": "Jun", "spendings": 40000, "sales": 90000, "coffee": 25000 },
-      { "date": "Jul", "spendings": 70000, "sales": 220000, "coffee": 40000 },
-      { "date": "Aug", "spendings": 55000, "sales": 170000, "coffee": 30000 },
-      { "date": "Sep", "spendings": 60000, "sales": 200000, "coffee": 35000 },
-      { "date": "Oct", "spendings": 35000, "sales": 140000, "coffee": 22000 },
-      { "date": "Nov", "spendings": 75000, "sales": 340000, "coffee": 38000 },
-      { "date": "Dec", "spendings": 90000, "sales": 420000, "coffee": 50000 }
+      { "date": "Jan", "submitted": 820, "approved": 705, "denied": 72 },
+      { "date": "Feb", "submitted": 760, "approved": 650, "denied": 68 },
+      { "date": "Mar", "submitted": 910, "approved": 790, "denied": 75 },
+      { "date": "Apr", "submitted": 880, "approved": 760, "denied": 80 },
+      { "date": "May", "submitted": 950, "approved": 830, "denied": 70 },
+      { "date": "Jun", "submitted": 870, "approved": 745, "denied": 82 },
+      { "date": "Jul", "submitted": 920, "approved": 800, "denied": 65 },
+      { "date": "Aug", "submitted": 840, "approved": 720, "denied": 78 },
+      { "date": "Sep", "submitted": 900, "approved": 785, "denied": 71 },
+      { "date": "Oct", "submitted": 960, "approved": 840, "denied": 68 },
+      { "date": "Nov", "submitted": 1020, "approved": 890, "denied": 74 },
+      { "date": "Dec", "submitted": 780, "approved": 670, "denied": 66 }
     ],
     "year": [
-      {
-        "date": "2020",
-        "spendings": 280000,
-        "sales": 580000,
-        "coffee": 150000
-      },
-      {
-        "date": "2021",
-        "spendings": 320000,
-        "sales": 650000,
-        "coffee": 180000
-      },
-      {
-        "date": "2022",
-        "spendings": 450000,
-        "sales": 950000,
-        "coffee": 250000
-      },
-      {
-        "date": "2023",
-        "spendings": 200000,
-        "sales": 520000,
-        "coffee": 120000
-      },
-      { "date": "2024", "spendings": 380000, "sales": 820000, "coffee": 200000 }
+      { "date": "2021", "submitted": 8200, "approved": 6900, "denied": 820 },
+      { "date": "2022", "submitted": 9400, "approved": 8100, "denied": 780 },
+      { "date": "2023", "submitted": 10800, "approved": 9350, "denied": 850 },
+      { "date": "2024", "submitted": 11500, "approved": 10100, "denied": 720 },
+      { "date": "2025", "submitted": 6200, "approved": 5400, "denied": 410 }
     ]
   },
   "rebelsRanking": [
     {
       "id": 1,
-      "name": "KRIMSON",
-      "handle": "@KRIMSON",
-      "streak": "2 WEEKS STREAK 🔥",
+      "name": "DR. S. CHEN",
+      "handle": "@SCHEN",
+      "streak": "TOP PERFORMER",
       "points": 148,
       "avatar": "/avatars/user_krimson.png",
       "featured": true,
-      "subtitle": "2 WEEKS STREAK 🔥"
+      "subtitle": "TOP PERFORMER"
     },
     {
       "id": 2,
-      "name": "MATI",
-      "handle": "@MATI",
+      "name": "AGENT ALPHA",
+      "handle": "@ALPHA",
       "streak": "",
       "points": 129,
       "avatar": "/avatars/user_mati.png"
     },
     {
       "id": 3,
-      "name": "PEK",
-      "handle": "@MATT",
+      "name": "DR. RIVERA",
+      "handle": "@MRIVERA",
       "streak": "",
       "points": 108,
       "avatar": "/avatars/user_pek.png"
     },
     {
       "id": 4,
-      "name": "JOYBOY",
-      "handle": "@JOYBOY",
+      "name": "AGENT BETA",
+      "handle": "@BETA",
       "streak": "",
       "points": 64,
       "avatar": "/avatars/user_joyboy.png"
@@ -156,67 +95,67 @@
   ],
   "securityStatus": [
     {
-      "title": "GUARD BOTS",
-      "value": "124/124",
+      "title": "AGENT BOTS",
+      "value": "8/8",
       "status": "[RUNNING...]",
       "variant": "success"
     },
     {
-      "title": "FIREWALL",
+      "title": "API UPTIME",
       "value": "99.9%",
-      "status": "[BLOCKED]",
+      "status": "[HEALTHY]",
       "variant": "success"
     },
     {
-      "title": "HTML WARNINGS",
-      "value": "12042",
-      "status": "[ACCESSIBILITY]",
+      "title": "QUEUE DEPTH",
+      "value": "24",
+      "status": "[PROCESSING]",
       "variant": "warning"
     }
   ],
   "notifications": [
     {
       "id": "notif-1",
-      "title": "PAYMENT RECEIVED",
-      "message": "Your payment to Rampant Studio has been processed successfully.",
-      "timestamp": "2024-07-10T13:39:00Z",
+      "title": "PA APPROVED",
+      "message": "Prior auth for Jane Doe (Humira) approved by Aetna.",
+      "timestamp": "2025-02-28T13:39:00Z",
       "type": "success",
       "read": false,
       "priority": "medium"
     },
     {
       "id": "notif-2",
-      "title": "INTRO: JOYCO STUDIO AND V0",
-      "message": "About us - We're a healthcare company focused on accessibility and innovation.",
-      "timestamp": "2024-07-10T13:35:00Z",
+      "title": "ELIGIBILITY VERIFIED",
+      "message": "Coverage confirmed for John Smith - United Healthcare.",
+      "timestamp": "2025-02-28T13:35:00Z",
       "type": "info",
       "read": false,
       "priority": "low"
     },
     {
       "id": "notif-3",
-      "title": "SYSTEM UPDATE",
-      "message": "Security patches have been applied to all guard bots.",
-      "timestamp": "2024-07-10T12:15:00Z",
+      "title": "AGENT COMPLETED",
+      "message": "Eligibility check bot finished for patient MRN-00421.",
+      "timestamp": "2025-02-28T12:15:00Z",
       "type": "info",
       "read": true,
       "priority": "medium"
     },
     {
       "id": "notif-4",
-      "title": "FIREWALL ALERT",
-      "message": "Blocked 247 suspicious connection attempts in the last hour.",
-      "timestamp": "2024-07-10T11:45:00Z",
+      "title": "INFO REQUEST",
+      "message": "Aetna requesting additional clinical notes for PA #4821.",
+      "timestamp": "2025-02-28T11:45:00Z",
       "type": "warning",
       "read": true,
       "priority": "high"
     }
   ],
   "widgetData": {
-    "location": "Buenos Aires, Argentina",
-    "timezone": "UTC-3",
-    "temperature": "18°C",
-    "weather": "Partly Cloudy",
-    "date": "Wednesday, July 10th, 2025"
+    "location": "PA Command Center",
+    "timezone": "EST",
+    "temperature": "24 active",
+    "weather": "System Nominal",
+    "date": "Friday, February 28th, 2025"
   }
 }

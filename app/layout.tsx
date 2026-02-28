@@ -1,4 +1,4 @@
-import { Roboto_Mono } from "next/font/google";
+import { Roboto_Mono, Inter } from "next/font/google";
 import "./globals.css";
 import { Metadata } from "next";
 import { V0Provider } from "@/lib/v0-context";
@@ -19,16 +19,21 @@ const robotoMono = Roboto_Mono({
   subsets: ["latin"],
 });
 
+const inter = Inter({
+  variable: "--font-inter",
+  subsets: ["latin"],
+});
+
 const isV0 = process.env["VERCEL_URL"]?.includes("vusercontent.net") ?? false;
 
 export const metadata: Metadata = {
   title: {
-    template: "%s – M.O.N.K.Y OS",
-    default: "M.O.N.K.Y OS",
+    template: "%s – Vitalink PA",
+    default: "Vitalink PA",
   },
   description:
-    "The ultimate OS for rebels. Making the web for brave individuals.",
-    generator: 'v0.app'
+    "Prior Authorization Command Center. Streamlining healthcare approvals with intelligent automation.",
+  generator: "v0.app",
 };
 
 export default function RootLayout({
@@ -37,18 +42,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <head>
-        <link
-          rel="preload"
-          href="/fonts/Rebels-Fett.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-      </head>
+    <html lang="en">
       <body
-        className={`${robotoMono.variable} antialiased`}
+        className={`${inter.variable} ${robotoMono.variable} antialiased`}
       >
         <V0Provider isV0={isV0}>
           <SidebarProvider>

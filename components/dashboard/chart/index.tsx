@@ -18,23 +18,23 @@ const mockData = mockDataJson as MockData;
 
 type ChartDataPoint = {
   date: string;
-  spendings: number;
-  sales: number;
-  coffee: number;
+  submitted: number;
+  approved: number;
+  denied: number;
 };
 
 const chartConfig = {
-  spendings: {
-    label: "Spendings",
+  submitted: {
+    label: "Submitted",
     color: "var(--chart-1)",
   },
-  sales: {
-    label: "Sales",
+  approved: {
+    label: "Approved",
     color: "var(--chart-2)",
   },
-  coffee: {
-    label: "Coffee",
-    color: "var(--chart-3)",
+  denied: {
+    label: "Denied",
+    color: "var(--chart-5)",
   },
 } satisfies ChartConfig;
 
@@ -76,39 +76,39 @@ export default function DashboardChart() {
             }}
           >
             <defs>
-              <linearGradient id="fillSpendings" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="fillSubmitted" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
-                  stopColor="var(--color-spendings)"
+                  stopColor="var(--color-submitted)"
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="95%"
-                  stopColor="var(--color-spendings)"
+                  stopColor="var(--color-submitted)"
                   stopOpacity={0.1}
                 />
               </linearGradient>
-              <linearGradient id="fillSales" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="fillApproved" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
-                  stopColor="var(--color-sales)"
+                  stopColor="var(--color-approved)"
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="95%"
-                  stopColor="var(--color-sales)"
+                  stopColor="var(--color-approved)"
                   stopOpacity={0.1}
                 />
               </linearGradient>
-              <linearGradient id="fillCoffee" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id="fillDenied" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
-                  stopColor="var(--color-coffee)"
+                  stopColor="var(--color-denied)"
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="95%"
-                  stopColor="var(--color-coffee)"
+                  stopColor="var(--color-denied)"
                   stopOpacity={0.1}
                 />
               </linearGradient>
@@ -146,31 +146,31 @@ export default function DashboardChart() {
               }
             />
             <Area
-              dataKey="spendings"
+              dataKey="submitted"
               type="linear"
-              fill="url(#fillSpendings)"
+              fill="url(#fillSubmitted)"
               fillOpacity={0.4}
-              stroke="var(--color-spendings)"
+              stroke="var(--color-submitted)"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
             />
             <Area
-              dataKey="sales"
+              dataKey="approved"
               type="linear"
-              fill="url(#fillSales)"
+              fill="url(#fillApproved)"
               fillOpacity={0.4}
-              stroke="var(--color-sales)"
+              stroke="var(--color-approved)"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}
             />
             <Area
-              dataKey="coffee"
+              dataKey="denied"
               type="linear"
-              fill="url(#fillCoffee)"
+              fill="url(#fillDenied)"
               fillOpacity={0.4}
-              stroke="var(--color-coffee)"
+              stroke="var(--color-denied)"
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 4 }}

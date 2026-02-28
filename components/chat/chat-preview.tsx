@@ -42,7 +42,7 @@ export default function ChatPreview({
       <div className="flex-1 min-w-0 group-hover:bg-accent px-2 py-1 rounded">
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <h3 className="font-display text-lg">{user.name}</h3>
+            <h3 className="font-display font-bold tracking-tight text-lg">{user.name}</h3>
             <p className="text-xs text-foreground/50">{user.username}</p>
           </div>
           <span className="text-xs text-foreground/40">

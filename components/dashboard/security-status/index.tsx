@@ -56,7 +56,7 @@ interface SecurityStatusProps {
 export default function SecurityStatus({ statuses }: SecurityStatusProps) {
   return (
     <DashboardCard
-      title="SECURITY STATUS"
+      title="SYSTEM STATUS"
       intent="success"
       addon={<Badge variant="outline-success">ONLINE</Badge>}
     >
@@ -75,7 +75,7 @@ export default function SecurityStatus({ statuses }: SecurityStatusProps) {
         <picture className="md:absolute md:top-0 md:right-0 w-full md:w-auto md:h-full aspect-square min-[2160px]:right-[10%]">
           <Image
             src="/assets/bot_greenprint.gif"
-            alt="Security Status"
+            alt="System Status"
             width={1000}
             height={1000}
             quality={90}

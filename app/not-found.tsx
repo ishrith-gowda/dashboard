@@ -16,7 +16,7 @@ export default function NotFound() {
         <picture className="w-1/4 aspect-square grayscale opacity-50">
           <Image
             src="/assets/bot_greenprint.gif"
-            alt="Security Status"
+            alt="System Status"
             width={1000}
             height={1000}
             quality={90}
@@ -30,7 +30,7 @@ export default function NotFound() {
             Not found, yet
           </h1>
           <p className="text-sm max-w-sm text-center text-muted-foreground text-balance">
-            Fork on v0 and start promoting your way to new pages.
+            This section of the PA Command Center is under development.
           </p>
         </div>
       </div>
