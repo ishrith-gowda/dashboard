@@ -15,8 +15,8 @@ export default function NotFound() {
       <div className="flex flex-col items-center justify-center gap-10 flex-1">
         <picture className="w-1/4 aspect-square grayscale opacity-50">
           <Image
-            src="/assets/bot_greenprint.gif"
-            alt="System Status"
+            src="/assets/healthcare_bot.jpg"
+            alt="Page under construction"
             width={1000}
             height={1000}
             quality={90}

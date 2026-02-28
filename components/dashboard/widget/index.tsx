@@ -69,8 +69,8 @@ export default function Widget({ widgetData }: WidgetProps) {
 
         <div className="absolute inset-0 -z-[1]">
           <Image
-            src="/assets/pc_blueprint.gif"
-            alt="logo"
+            src="/assets/healthcare_grid.jpg"
+            alt="Healthcare grid background"
             width={250}
             height={250}
             className="size-full object-contain"

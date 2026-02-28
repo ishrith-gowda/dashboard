@@ -74,8 +74,8 @@ export default function SecurityStatus({ statuses }: SecurityStatusProps) {
         </div>
         <picture className="md:absolute md:top-0 md:right-0 w-full md:w-auto md:h-full aspect-square min-[2160px]:right-[10%]">
           <Image
-            src="/assets/bot_greenprint.gif"
-            alt="System Status"
+            src="/assets/healthcare_bot.jpg"
+            alt="Healthcare AI System Status"
             width={1000}
             height={1000}
             quality={90}
