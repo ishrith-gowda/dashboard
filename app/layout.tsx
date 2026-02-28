@@ -2,7 +2,6 @@ import { Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import { Metadata } from "next";
 import { V0Provider } from "@/lib/v0-context";
-import localFont from "next/font/local";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { MobileHeader } from "@/components/dashboard/mobile-header";
 import { DashboardSidebar } from "@/components/dashboard/sidebar";
@@ -18,12 +17,6 @@ const mockData = mockDataJson as MockData;
 const robotoMono = Roboto_Mono({
   variable: "--font-roboto-mono",
   subsets: ["latin"],
-});
-
-const rebelGrotesk = localFont({
-  src: "../public/fonts/Rebels-Fett.woff2",
-  variable: "--font-rebels",
-  display: "swap",
 });
 
 const isV0 = process.env["VERCEL_URL"]?.includes("vusercontent.net") ?? false;
@@ -55,7 +48,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${rebelGrotesk.variable} ${robotoMono.variable} antialiased`}
+        className={`${robotoMono.variable} antialiased`}
       >
         <V0Provider isV0={isV0}>
           <SidebarProvider>
