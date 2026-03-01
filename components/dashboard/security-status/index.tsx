@@ -61,7 +61,7 @@ export default function SecurityStatus({ statuses }: SecurityStatusProps) {
       addon={<Badge variant="outline-success">ONLINE</Badge>}
     >
       <div className="flex flex-col">
-        <div className="max-md:order-1 grid grid-cols:3 md:grid-cols-1 gap-4 py-2 px-1 md:max-w-max">
+        <div className="max-md:order-1 grid grid-cols-3 md:grid-cols-1 gap-4 py-2 px-1 md:max-w-max">
           {statuses.map((item, index) => (
             <SecurityStatusItem
               key={index}
