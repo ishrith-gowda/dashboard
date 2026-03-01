@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.12"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -1401,6 +1401,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "browser-use" },
+    { name = "browser-use-sdk" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "pydantic" },
@@ -1417,6 +1418,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "browser-use", specifier = ">=0.1.40" },
+    { name = "browser-use-sdk", specifier = ">=2.0.15" },
     { name = "fastapi", specifier = ">=0.115.0" },
     { name = "httpx", specifier = ">=0.28.0" },
     { name = "pydantic", specifier = ">=2.10.0" },
