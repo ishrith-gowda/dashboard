@@ -680,7 +680,7 @@ export function Layout() {
         </header>
 
         {/* Main content */}
-        <div className="flex-1 min-w-0 pt-12 lg:pt-0">
+        <div className="flex-1 min-w-0 pt-12 lg:pt-3">
           <Outlet />
         </div>
 
