@@ -111,6 +111,26 @@ async def update_status(
         checked_at=datetime.now(UTC),
     )
     await save_status_update(update)
+
+    # Store outcome in Supermemory for future learning
+    if status_enum in (PAStatusEnum.APPROVED, PAStatusEnum.DENIED):
+        from tools.memory_client import store_pa_outcome
+        from agents.base import load_chart
+        try:
+            chart = load_chart(mrn)
+            payer = chart.get("insurance", {}).get("payer", "")
+            med = chart.get("medication", {}).get("name", "")
+            denial = update.denial_reason or ""
+            store_pa_outcome(
+                mrn=mrn,
+                payer=payer,
+                medication=med,
+                status=status_enum.value,
+                denial_reason=denial,
+            )
+        except Exception:
+            pass  # Don't fail the agent on memory errors
+
     return ActionResult(
         extracted_content=f"Status updated: {mrn} -> {status}"
     )
@@ -168,6 +188,11 @@ async def monitor_covermymeds(mrn: str, patient_name: str):
         sensitive_data=get_sensitive_data(),
         use_vision=True,
         max_actions_per_step=2,
+        output_model_schema=PAStatusUpdate,
+        flash_mode=True,
+        initial_actions=[
+            {"navigate": {"url": COVERMYMEDS_URL}},
+        ],
     )
 
     try:
