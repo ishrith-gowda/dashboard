@@ -10,6 +10,9 @@ import {
   Menu,
   X,
   ChevronRight,
+  ChevronLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
   Settings,
   LogOut,
   CircleCheck,
@@ -143,6 +146,7 @@ export function Layout() {
   const location = useLocation();
   const dashboardData = usePADashboard();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
@@ -203,7 +207,7 @@ export function Layout() {
         <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <PriorFlowLogo className="size-6" />
         </div>
-        <span className="text-lg font-['Inter',sans-serif] font-bold tracking-tight">PriorFlow</span>
+        <span className="text-lg font-bold tracking-tight">PriorFlow</span>
       </div>
 
       {/* Navigation */}
@@ -235,40 +239,6 @@ export function Layout() {
           );
         })}
       </nav>
-
-      {/* Quick Stats — derived from live data */}
-      <div className="mt-1">
-        <p className="px-2.5 pb-1.5 pt-1 text-[10px] uppercase tracking-[0.2em] text-muted-foreground/50">
-          TODAY
-        </p>
-        <div className="grid grid-cols-2 gap-1.5">
-          {dashboardData.loading
-            ? [...Array(4)].map((_, i) => (
-                <div key={i} className="rounded-md border border-border/40 bg-muted/50 p-2.5 h-16 animate-pulse" />
-              ))
-            : sidebarStats.map((stat) => {
-                const Icon = stat.icon;
-                return (
-                  <div
-                    key={stat.label}
-                    className="rounded-md border border-border/60 bg-accent/50 p-2.5 flex flex-col gap-1.5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className={cn('size-6 rounded flex items-center justify-center', stat.bgColor)}>
-                        <Icon className={cn('size-3.5', stat.color)} />
-                      </div>
-                      <span className="text-lg font-['Inter',sans-serif] font-bold tracking-tight leading-none">
-                        {stat.value}
-                      </span>
-                    </div>
-                    <span className="text-[9px] tracking-wider text-muted-foreground/60 uppercase">
-                      {stat.label}
-                    </span>
-                  </div>
-                );
-              })}
-        </div>
-      </div>
 
       {/* Quick Actions */}
       <div className="mt-1">
@@ -356,10 +326,48 @@ export function Layout() {
         )}
       </div>
 
-      {/* Version */}
+      {/* Collapse toggle */}
       <div className="px-2.5 pb-1 flex items-center justify-between">
         <span className="text-[9px] text-muted-foreground/30 tracking-wider">PRIORFLOW v2.4.1</span>
-        <span className="text-[9px] text-muted-foreground/30 tracking-wider">HIPAA</span>
+        <button
+          onClick={() => setSidebarCollapsed(true)}
+          className="flex items-center justify-center size-6 rounded text-muted-foreground/40 hover:text-foreground hover:bg-accent transition-colors"
+          title="Collapse sidebar"
+        >
+          <PanelLeftClose className="size-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+
+  // ═══════════════════════════════════════════════
+  // COLLAPSED SIDEBAR (icon strip)
+  // ═══════════════════════════════════════════════
+  const CollapsedSidebar = () => (
+    <div className="flex flex-col items-center h-full py-3 gap-1.5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground mb-2">
+        <PriorFlowLogo className="size-5" />
+      </div>
+      {navigation.map((item) => {
+        const isActive = location.pathname === item.href;
+        const Icon = item.icon;
+        return (
+          <Link key={item.name} to={item.href} title={item.name}
+            className={cn(
+              'flex items-center justify-center size-9 rounded-md transition-colors',
+              isActive ? 'bg-primary text-primary-foreground' : 'text-sidebar-foreground/50 hover:bg-sidebar-accent hover:text-sidebar-foreground',
+              item.locked && 'pointer-events-none opacity-30'
+            )}
+          >
+            <Icon className="size-4" />
+          </Link>
+        );
+      })}
+      <div className="mt-auto">
+        <button onClick={() => setSidebarCollapsed(false)} title="Expand sidebar"
+          className="flex items-center justify-center size-9 rounded-md text-muted-foreground/40 hover:text-foreground hover:bg-accent transition-colors">
+          <PanelLeftOpen className="size-4" />
+        </button>
       </div>
     </div>
   );
@@ -376,13 +384,12 @@ export function Layout() {
           <span>{dateInfo.restOfDate}</span>
         </div>
         <div className="text-center">
-          <div className="text-5xl font-['Inter',sans-serif] font-bold tracking-tight" suppressHydrationWarning>
+          <div className="text-5xl font-bold tracking-tight font-mono" suppressHydrationWarning>
             {formatTime(currentTime)}
           </div>
         </div>
         <div className="flex justify-between items-center">
           <span className="opacity-50">{dashboardData.queueDepth} queued</span>
-          <span>{widgetData.location}</span>
           <span className="px-2 py-0.5 text-xs bg-accent rounded font-medium">
             {widgetData.timezone}
           </span>
@@ -621,10 +628,9 @@ export function Layout() {
   // RIGHT PANEL
   // ═══════════════════════════════════════════════
   const RightPanel = () => (
-    <div className="flex flex-col h-full gap-gap py-sides min-h-screen max-h-screen sticky top-0 overflow-clip">
+    <div className="flex flex-col h-screen sticky top-0 overflow-hidden py-sides gap-3">
       <WidgetSection />
       <NotificationsSection />
-      <ChatSection />
     </div>
   );
 
@@ -643,9 +649,9 @@ export function Layout() {
         )}
 
         {/* Left Sidebar - Desktop */}
-        <aside className="hidden lg:block col-span-2 top-0 relative">
+        <aside className={cn('hidden lg:block top-0 relative transition-all', sidebarCollapsed ? 'col-span-1' : 'col-span-2')}>
           <div className="sticky top-0 py-sides min-h-screen max-h-screen overflow-auto rounded-lg border border-border bg-card">
-            <SidebarContent />
+            {sidebarCollapsed ? <CollapsedSidebar /> : <SidebarContent />}
           </div>
         </aside>
 
@@ -670,12 +676,12 @@ export function Layout() {
           </button>
           <div className="flex items-center gap-2">
             <PriorFlowMark className="size-5 text-primary" />
-            <span className="text-xs font-semibold tracking-wider font-['Inter',sans-serif]">PriorFlow</span>
+            <span className="text-xs font-semibold tracking-wider font-mono">PriorFlow</span>
           </div>
         </header>
 
         {/* Main content */}
-        <div className="col-span-1 lg:col-span-7 pt-12 lg:pt-0">
+        <div className={cn('col-span-1 pt-12 lg:pt-0', sidebarCollapsed ? 'lg:col-span-8' : 'lg:col-span-7')}>
           <Outlet />
         </div>
 
