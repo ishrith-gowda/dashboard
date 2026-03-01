@@ -23,7 +23,7 @@ export default function TVNoise({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animationId: number;
+    let animationId: number | undefined;
 
     const resize = () => {
       canvas.width = canvas.offsetWidth || 1;
