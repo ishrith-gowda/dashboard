@@ -195,6 +195,7 @@ async def fill_covermymeds_pa(mrn: str):
     # Create session with synced profile (CoverMyMeds auth cookies)
     session = await client.sessions.create_session(
         profile_id=CLOUD_PROFILE_ID,
+        start_url=COVERMYMEDS_URL,
     )
     print(f"🌐 Cloud session: {session.id}")
     if hasattr(session, "live_url"):
@@ -225,16 +226,18 @@ async def fill_covermymeds_pa(mrn: str):
             flash_mode=True,
         )
 
-        # Stream progress
+        # Stream progress — brief delay to let task register
+        import asyncio as _asyncio
+        await _asyncio.sleep(2)
         print(f"🤖 Task started (flash mode): {task.id}")
-        async for step in task.stream():
+        async for step in task.stream(interval=2):
             step_num = getattr(step, "number", "?")
             goal = getattr(step, "next_goal", getattr(step, "status", ""))
             url = getattr(step, "url", "")
             print(f"   📍 Step {step_num}: {goal} ({url})")
 
-        # Get final result
-        result = await task.complete()
+        # Get final result via direct API call (more reliable than complete() after stream)
+        result = await client.tasks.get_task(task.id)
         print(f"✅ Task completed: {getattr(result, 'status', 'done')}")
 
         # Post-process: generate justification and record submission
@@ -356,6 +359,7 @@ async def fill_covermymeds_from_key(
 
     session = await client.sessions.create_session(
         profile_id=CLOUD_PROFILE_ID,
+        start_url=COVERMYMEDS_KEY_URL,
     )
     print(f"🌐 Cloud session (key flow): {session.id}")
 
@@ -398,7 +402,7 @@ Select "Email" method, confirm and send.
             goal = getattr(step, "next_goal", getattr(step, "status", ""))
             print(f"   📍 Step {step_num}: {goal}")
 
-        result = await task.complete()
+        result = await client.tasks.get_task(task.id)
         print(f"✅ Key flow completed")
 
         # Post-process
