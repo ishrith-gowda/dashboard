@@ -33,6 +33,9 @@ class Settings:
     # Memory (Supermemory)
     SUPERMEMORY_API_KEY: str = os.getenv("SUPERMEMORY_API_KEY", "")
 
+    # Frontend URL (for CORS in production)
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "")
+
     # LLM
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 

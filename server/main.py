@@ -21,14 +21,18 @@ app = FastAPI(
     version="0.1.0",
 )
 
+_origins = [
+    f"http://localhost:{settings.FRONTEND_PORT}",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+]
+if settings.FRONTEND_URL:
+    _origins.append(settings.FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        f"http://localhost:{settings.FRONTEND_PORT}",
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:5174",
-    ],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
