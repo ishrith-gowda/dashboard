@@ -22,6 +22,7 @@ app.add_middleware(
     allow_origins=[
         f"http://localhost:{settings.FRONTEND_PORT}",
         "http://localhost:3000",
+        "http://localhost:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
