@@ -1,11 +1,26 @@
 import { Badge } from "@/components/ui/badge";
 import DashboardCard from "@/components/dashboard/card";
 import type { RebelRanking } from "@/types/dashboard";
-import Image from "next/image";
 import { cn } from "@/lib/utils";
 
 interface RebelsRankingProps {
   rebels: RebelRanking[];
+}
+
+const avatarColors = [
+  "bg-primary text-primary-foreground",
+  "bg-chart-2 text-primary-foreground",
+  "bg-chart-3 text-primary-foreground",
+  "bg-chart-4 text-primary-foreground",
+];
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter((w) => w.length > 1)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2);
 }
 
 export default function RebelsRanking({ rebels }: RebelsRankingProps) {
@@ -16,7 +31,7 @@ export default function RebelsRanking({ rebels }: RebelsRankingProps) {
       addon={<Badge variant="outline-warning">THIS WEEK</Badge>}
     >
       <div className="space-y-4">
-        {rebels.map((rebel) => (
+        {rebels.map((rebel, index) => (
           <div key={rebel.id} className="flex items-center justify-between">
             <div className="flex items-center gap-1 w-full">
               <div
@@ -31,21 +46,14 @@ export default function RebelsRanking({ rebels }: RebelsRankingProps) {
               </div>
               <div
                 className={cn(
-                  "rounded-lg overflow-hidden bg-muted",
-                  rebel.featured ? "size-14 md:size-16" : "size-10 md:size-12"
+                  "rounded-lg overflow-hidden flex items-center justify-center font-bold font-mono",
+                  avatarColors[index % avatarColors.length],
+                  rebel.featured
+                    ? "size-14 md:size-16 text-lg"
+                    : "size-10 md:size-12 text-sm"
                 )}
               >
-                {rebel.avatar ? (
-                  <Image
-                    src={rebel.avatar}
-                    alt={rebel.name}
-                    width={120}
-                    height={120}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-muted" />
-                )}
+                {getInitials(rebel.name)}
               </div>
               <div
                 className={cn(
