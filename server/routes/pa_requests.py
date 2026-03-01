@@ -96,3 +96,16 @@ async def trigger_status_check(req: TriggerStatusCheckRequest) -> APIResponse:
         message=f"Status check queued for {req.mrn}",
         data={"run_id": run_id, "mrn": req.mrn},
     )
+
+
+@router.get("/emails/{mrn}")
+async def get_pa_emails(mrn: str) -> APIResponse:
+    """Retrieve Agentmail email thread history for a PA case."""
+    from tools.alert_sender import get_pa_email_history
+
+    history = get_pa_email_history(mrn)
+    return APIResponse(
+        success=True,
+        message=f"Email history for {mrn}",
+        data={"emails": history, "count": len(history)},
+    )

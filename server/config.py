@@ -30,10 +30,19 @@ class Settings:
     # Notifications
     AGENTMAIL_API_KEY: str = os.getenv("AGENTMAIL_API_KEY", "")
 
+    # Memory (Supermemory)
+    SUPERMEMORY_API_KEY: str = os.getenv("SUPERMEMORY_API_KEY", "")
+
+    # Frontend URL (for CORS in production)
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "")
+
     # LLM
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 
     # Observability
+    LMNR_PROJECT_API_KEY: str = os.getenv("LMNR_PROJECT_API_KEY", "")
+    LMNR_BASE_URL: str = os.getenv("LMNR_BASE_URL", "")
+    # Backward-compatible fallback name.
     LAMINAR_API_KEY: str = os.getenv("LAMINAR_API_KEY", "")
 
 

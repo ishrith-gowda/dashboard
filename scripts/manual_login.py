@@ -1,49 +1,54 @@
 """
-Manual login helper — opens a browser with persistent profile so you can
-log in to CoverMyMeds and complete 2FA without the agent interfering.
+Manual login helper for Browser Use Cloud profile.
 
 Usage: uv run python scripts/manual_login.py
 
-Once logged in, close the browser or press Ctrl+C. Future agent runs
-will reuse the saved session cookies.
+This opens a Browser Use cloud session for the same profile used by the PA agent.
+Log in and complete 2FA in the live view URL, then press Enter here to stop
+the session and persist cookies to that profile.
 """
 
 import asyncio
-from pathlib import Path
-from playwright.async_api import async_playwright
+import os
 
-PROFILE_DIR = Path(__file__).parent.parent / ".browser_profile"
+from browser_use_sdk import AsyncBrowserUse
+from dotenv import load_dotenv
+
+load_dotenv()
+
+CLOUD_PROFILE_ID = os.getenv(
+    "BROWSER_USE_PROFILE_ID", "bcf273d4-abc4-40c4-b506-8ad330d4c678"
+)
+CLOUD_BASE_URL = os.getenv("BROWSER_USE_BASE_URL", "https://api.browser-use.com/api/v3")
 
 
 async def main():
-    PROFILE_DIR.mkdir(exist_ok=True)
+    api_key = os.getenv("BROWSER_USE_API_KEY")
+    if not api_key:
+        raise RuntimeError("BROWSER_USE_API_KEY is required")
 
-    print("🔓 Opening browser for manual login...")
-    print("   1. Log in to CoverMyMeds")
-    print("   2. Complete email/2FA verification")
-    print("   3. Once you see the dashboard, press Ctrl+C here to save session")
+    client = AsyncBrowserUse(api_key=api_key, base_url=CLOUD_BASE_URL)
+    session = await client.sessions.create_session(
+        profile_id=CLOUD_PROFILE_ID,
+        start_url="https://www.covermymeds.health",
+        persist_memory=True,
+        keep_alive=True,
+    )
+
+    print("🔓 Cloud profile login session started")
+    print(f"   Profile ID: {CLOUD_PROFILE_ID}")
+    print(f"   Session ID: {session.id}")
+    if hasattr(session, "live_url"):
+        print(f"   Live URL:   {session.live_url}")
     print()
+    print("1) Open the live URL")
+    print("2) Log in to CoverMyMeds + complete MFA")
+    print("3) Press Enter here to save and close the cloud session")
+    await asyncio.to_thread(input)
 
-    async with async_playwright() as p:
-        # Use the same Chromium that Browser Use downloads
-        browser = await p.chromium.launch(headless=False)
-        context = await browser.new_context(storage_state=str(PROFILE_DIR / "state.json") if (PROFILE_DIR / "state.json").exists() else None)
-        page = await context.new_page()
-        await page.goto("https://www.covermymeds.health")
-
-        print("⏳ Waiting for you to complete login... (Ctrl+C when done)")
-        try:
-            while True:
-                await asyncio.sleep(1)
-        except (KeyboardInterrupt, asyncio.CancelledError):
-            pass
-
-        # Save cookies and storage state for reuse
-        await context.storage_state(path=str(PROFILE_DIR / "state.json"))
-        await context.close()
-        await browser.close()
-        print("✅ Session saved to .browser_profile/state.json!")
-        print("   Future agent runs will load this session automatically.")
+    await client.sessions.update_session(session.id, action="stop")
+    print("✅ Cloud profile session stopped and state persisted.")
+    print("   Future PA runs will reuse this profile.")
 
 
 if __name__ == "__main__":
