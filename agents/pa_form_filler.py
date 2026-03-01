@@ -6,7 +6,7 @@ fills the form with chart data, writes clinical justification, and submits.
 
 This is the CORE DEMO FEATURE — the "money" agent.
 
-Uses Browser Use Cloud SDK (browser-use-2.0 model) for stealth browser automation.
+Uses Browser Use Cloud SDK (v3 API + browser-use-llm) for stealth browser automation.
 
 Owned by Dev 3.
 """
@@ -32,6 +32,8 @@ load_dotenv()
 CLOUD_PROFILE_ID = os.getenv(
     "BROWSER_USE_PROFILE_ID", "bcf273d4-abc4-40c4-b506-8ad330d4c678"
 )
+CLOUD_BASE_URL = os.getenv("BROWSER_USE_BASE_URL", "https://api.browser-use.com/api/v3")
+CLOUD_LLM = os.getenv("BROWSER_USE_LLM", "browser-use-llm")
 
 
 def _format_phone(raw: str) -> str:
@@ -147,7 +149,7 @@ Click "Send To Prescriber" (NOT "Send To Plan").
 async def fill_covermymeds_pa(mrn: str):
     """Drive the CoverMyMeds portal to submit a prior authorization.
 
-    Uses Browser Use Cloud SDK with browser-use-2.0 model.
+    Uses Browser Use Cloud SDK with v3 API.
     Flow: Login → New Request → Enter med + demographics → Select form →
     Fill Caremark ePA fields → Send To Prescriber.
     """
@@ -157,11 +159,17 @@ async def fill_covermymeds_pa(mrn: str):
     task_prompt = _build_task_prompt(mrn, chart)
 
     # Create cloud client
-    client = AsyncBrowserUse(api_key=os.getenv("BROWSER_USE_API_KEY"))
+    client = AsyncBrowserUse(
+        api_key=os.getenv("BROWSER_USE_API_KEY"),
+        base_url=CLOUD_BASE_URL,
+    )
 
     # Create session with synced profile (CoverMyMeds auth cookies)
     session = await client.sessions.create_session(
         profile_id=CLOUD_PROFILE_ID,
+        start_url=COVERMYMEDS_URL,
+        persist_memory=True,
+        keep_alive=True,
     )
     print(f"🌐 Cloud session: {session.id}")
     if hasattr(session, "live_url"):
@@ -171,7 +179,7 @@ async def fill_covermymeds_pa(mrn: str):
         # Run the browser automation task
         task = await client.tasks.create_task(
             session_id=session.id,
-            llm="browser-use-2.0",
+            llm=CLOUD_LLM,
             task=task_prompt,
             start_url=COVERMYMEDS_URL,
             secrets={
@@ -210,6 +218,14 @@ async def fill_covermymeds_pa(mrn: str):
     except Exception as e:
         print(f"❌ Agent failed for {mrn}: {e}")
         return None
+    finally:
+        try:
+            await client.sessions.update_session(
+                session.id,
+                action="stop",
+            )
+        except Exception:
+            pass
 
 
 async def _post_process(mrn: str, chart: dict, cloud_result) -> dict:
@@ -287,17 +303,23 @@ async def fill_covermymeds_from_key(
         else patient_dob
     )
 
-    client = AsyncBrowserUse(api_key=os.getenv("BROWSER_USE_API_KEY"))
+    client = AsyncBrowserUse(
+        api_key=os.getenv("BROWSER_USE_API_KEY"),
+        base_url=CLOUD_BASE_URL,
+    )
 
     session = await client.sessions.create_session(
         profile_id=CLOUD_PROFILE_ID,
+        start_url=COVERMYMEDS_KEY_URL,
+        persist_memory=True,
+        keep_alive=True,
     )
     print(f"🌐 Cloud session (key flow): {session.id}")
 
     try:
         task = await client.tasks.create_task(
             session_id=session.id,
-            llm="browser-use-2.0",
+            llm=CLOUD_LLM,
             task=f"""
 You are a prior authorization specialist. A pharmacy has initiated a PA request
 and sent a fax with an access key. Complete the PA using the key.
@@ -350,3 +372,11 @@ Select "Email" method, confirm and send.
     except Exception as e:
         print(f"❌ Key flow agent failed: {e}")
         return None
+    finally:
+        try:
+            await client.sessions.update_session(
+                session.id,
+                action="stop",
+            )
+        except Exception:
+            pass
