@@ -30,6 +30,9 @@ class Settings:
     # Notifications
     AGENTMAIL_API_KEY: str = os.getenv("AGENTMAIL_API_KEY", "")
 
+    # Memory (Supermemory)
+    SUPERMEMORY_API_KEY: str = os.getenv("SUPERMEMORY_API_KEY", "")
+
     # LLM
     ANTHROPIC_API_KEY: str = os.getenv("ANTHROPIC_API_KEY", "")
 

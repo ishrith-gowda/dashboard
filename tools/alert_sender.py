@@ -1,49 +1,103 @@
 """
-Alert sender — Agentmail integration for PA status notifications.
+Alert sender — Agentmail SDK integration for PA status notifications.
+
+Uses the Agentmail SDK to create per-PA inboxes, send threaded alerts,
+and retrieve email history for audit. Falls back to console logging
+when AGENTMAIL_API_KEY is not set.
 
 Owned by Dev 2.
 """
 
+import logging
 import os
 from datetime import datetime, UTC
-
-import httpx
+from typing import Optional
 
 from shared.models import AlertPayload, Portal
 
+logger = logging.getLogger(__name__)
+
 AGENTMAIL_API_KEY = os.getenv("AGENTMAIL_API_KEY", "")
-AGENTMAIL_ENDPOINT = "https://api.agentmail.to/v1/emails"
+NOTIFICATION_RECIPIENT = os.getenv(
+    "NOTIFICATION_EMAIL", "clinic-notifications@agentmail.to"
+)
+
+# In-memory cache: mrn -> inbox_id
+_pa_inboxes: dict[str, str] = {}
+# In-memory cache: mrn -> thread_id (for threading alerts per PA case)
+_pa_threads: dict[str, str] = {}
+
+_client = None
+_enabled: Optional[bool] = None
+
+
+def _get_client():
+    global _client, _enabled
+    if _enabled is False:
+        return None
+    if _client is not None:
+        return _client
+
+    if not AGENTMAIL_API_KEY:
+        _enabled = False
+        logger.info("Agentmail disabled — no AGENTMAIL_API_KEY set")
+        return None
+
+    try:
+        from agentmail import AgentMail
+        _client = AgentMail(api_key=AGENTMAIL_API_KEY)
+        _enabled = True
+        return _client
+    except ImportError:
+        _enabled = False
+        logger.warning("agentmail package not installed — email features disabled")
+        return None
+    except Exception:
+        _enabled = False
+        logger.warning("Failed to initialize Agentmail client", exc_info=True)
+        return None
 
 
 def _build_email_body(payload: AlertPayload) -> str:
-    """Build HTML email body from alert payload."""
-    status_colors = {
-        "approved": "#22c55e",
-        "denied": "#ef4444",
-        "delayed": "#f59e0b",
-        "error": "#ef4444",
-        "submitted": "#3b82f6",
-    }
-    color = status_colors.get(payload.event_type, "#6b7280")
+    """Build plain text email body from alert payload."""
+    lines = [
+        f"PA {payload.event_type.upper()}",
+        "",
+        f"Patient: {payload.patient_name} ({payload.mrn})",
+        f"Portal: {payload.portal.value}",
+        f"Details: {payload.details}",
+        f"Timestamp: {payload.timestamp}",
+    ]
+    return "\n".join(lines)
 
-    return f"""
-    <div style="font-family: sans-serif; max-width: 600px;">
-      <h2 style="color: {color};">
-        PA {payload.event_type.upper()}
-      </h2>
-      <p><strong>Patient:</strong> {payload.patient_name}
-         ({payload.mrn})</p>
-      <p><strong>Portal:</strong> {payload.portal.value}</p>
-      <p><strong>Details:</strong> {payload.details}</p>
-      <p style="color: #6b7280; font-size: 12px;">
-        {payload.timestamp}
-      </p>
-    </div>
+
+def create_pa_inbox(mrn: str) -> Optional[str]:
+    """Create a dedicated Agentmail inbox for a PA case.
+
+    Returns the inbox email address, or None if Agentmail is disabled.
     """
+    client = _get_client()
+    if not client:
+        return None
+
+    if mrn in _pa_inboxes:
+        return _pa_inboxes[mrn]
+
+    try:
+        inbox = client.inboxes.create(
+            username=f"pa-{mrn.lower()}",
+        )
+        inbox_id = inbox.id if hasattr(inbox, "id") else str(inbox)
+        _pa_inboxes[mrn] = inbox_id
+        logger.info("Created Agentmail inbox for %s: %s", mrn, inbox_id)
+        return inbox_id
+    except Exception:
+        logger.warning("Failed to create Agentmail inbox for %s", mrn, exc_info=True)
+        return None
 
 
 async def send_pa_alert(payload: AlertPayload) -> bool:
-    """Send a PA status alert. Uses Agentmail if configured,
+    """Send a PA status alert. Uses Agentmail SDK if configured,
     otherwise falls back to console logging."""
     # Console log always
     print(
@@ -54,33 +108,62 @@ async def send_pa_alert(payload: AlertPayload) -> bool:
     print(f"  Details: {payload.details}")
     print(f"  Timestamp: {payload.timestamp}")
 
-    if not AGENTMAIL_API_KEY:
+    client = _get_client()
+    if not client:
         return True
 
-    # Send via Agentmail API
     try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                AGENTMAIL_ENDPOINT,
-                headers={
-                    "Authorization": f"Bearer {AGENTMAIL_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "subject": (
-                        f"PA {payload.event_type.upper()}: "
-                        f"{payload.patient_name}"
-                    ),
-                    "body": _build_email_body(payload),
-                },
-                timeout=10,
-            )
-            resp.raise_for_status()
-            print(f"  Agentmail sent successfully")
-            return True
-    except Exception as e:
-        print(f"  Agentmail failed: {e}")
+        # Ensure we have an inbox for this PA case
+        inbox_id = _pa_inboxes.get(payload.mrn)
+        if not inbox_id:
+            inbox_id = create_pa_inbox(payload.mrn)
+        if not inbox_id:
+            return True  # Fall back silently
+
+        subject = (
+            f"PA {payload.event_type.upper()}: "
+            f"{payload.patient_name}"
+        )
+        body = _build_email_body(payload)
+
+        client.inboxes.messages.send(
+            inbox_id=inbox_id,
+            to=NOTIFICATION_RECIPIENT,
+            subject=subject,
+            text=body,
+        )
+
+        logger.info("Agentmail alert sent for %s", payload.mrn)
+        return True
+    except Exception:
+        logger.warning("Agentmail send failed", exc_info=True)
         return True  # Don't fail the agent on email errors
+
+
+def get_pa_email_history(mrn: str) -> list[dict]:
+    """Retrieve email history for a PA case inbox.
+
+    Returns a list of message summaries, or empty list if unavailable.
+    """
+    client = _get_client()
+    inbox_id = _pa_inboxes.get(mrn)
+    if not client or not inbox_id:
+        return []
+
+    try:
+        threads = client.inboxes.threads.list(inbox_id=inbox_id)
+        result = []
+        for t in threads:
+            result.append({
+                "thread_id": getattr(t, "id", str(t)),
+                "subject": getattr(t, "subject", ""),
+                "message_count": getattr(t, "message_count", 0),
+                "last_updated": str(getattr(t, "updated_at", "")),
+            })
+        return result
+    except Exception:
+        logger.warning("Failed to retrieve email history for %s", mrn, exc_info=True)
+        return []
 
 
 def build_approval_alert(
@@ -117,6 +200,9 @@ def build_delay_alert(
         mrn=mrn,
         event_type="delayed",
         portal=portal,
-        details=f"PA has been pending for {days_pending} days without determination.",
+        details=(
+            f"PA has been pending for {days_pending} days "
+            f"without determination."
+        ),
         timestamp=datetime.now(UTC),
     )

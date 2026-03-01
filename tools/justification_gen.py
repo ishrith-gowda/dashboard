@@ -2,21 +2,39 @@
 Clinical justification narrative generator.
 
 Builds medical necessity narratives from structured chart data
-for PA form submissions.
+for PA form submissions. Enriches narratives with Supermemory
+context (payer patterns, patient history, successful templates).
 
 Owned by Dev 3.
 """
 
+import logging
+
 from shared.models import PatientChart
+
+logger = logging.getLogger(__name__)
+
+
+def _get_memory_context(chart: PatientChart) -> dict:
+    """Query Supermemory for context to enrich the justification."""
+    from tools.memory_client import get_payer_insights, get_patient_history, get_successful_patterns
+
+    payer = chart.insurance.payer
+    medication = chart.medication.name if chart.medication else ""
+    diagnosis = chart.diagnosis.description
+
+    return {
+        "payer_insights": get_payer_insights(payer, medication) if medication else "",
+        "patient_history": get_patient_history(chart.patient.mrn),
+        "successful_patterns": get_successful_patterns(medication, diagnosis) if medication else "",
+    }
 
 
 def generate_justification(chart: PatientChart) -> str:
     """Generate a clinical justification narrative from patient chart data.
 
-    TODO: Dev 3 — Enhance in Phase 2:
-    - Consider using Claude API for richer medical writing
-    - Add medication-specific criteria references
-    - Include payer-specific guideline citations
+    Queries Supermemory for payer-specific requirements, patient PA history,
+    and previously successful justification patterns to produce stronger narratives.
     """
     # Determine what we're requesting PA for
     if chart.medication:
@@ -39,6 +57,20 @@ def generate_justification(chart: PatientChart) -> str:
         f"{k}: {v}" for k, v in chart.imaging.items()
     ) if chart.imaging else "None available"
 
+    # Query Supermemory for learned context
+    memory = _get_memory_context(chart)
+    memory_section = ""
+    if any(memory.values()):
+        parts = []
+        if memory["payer_insights"]:
+            parts.append(f"Payer-specific considerations ({chart.insurance.payer}):\n{memory['payer_insights']}")
+        if memory["patient_history"]:
+            parts.append(f"Patient PA history:\n{memory['patient_history']}")
+        if memory["successful_patterns"]:
+            parts.append(f"Evidence-based justification patterns:\n{memory['successful_patterns']}")
+        if parts:
+            memory_section = "\n\nLEARNED CONTEXT (from prior PA outcomes):\n\n" + "\n\n".join(parts)
+
     narrative = f"""Clinical Justification for Prior Authorization
 
 Patient: {chart.patient.name}, DOB: {chart.patient.dob}
@@ -57,7 +89,7 @@ SUPPORTING CLINICAL EVIDENCE:
 
 Laboratory findings: {lab_summary}
 
-Imaging findings: {imaging_summary}
+Imaging findings: {imaging_summary}{memory_section}
 
 CONCLUSION:
 

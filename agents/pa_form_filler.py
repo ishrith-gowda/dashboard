@@ -306,6 +306,16 @@ async def _post_process(mrn: str, chart: dict, cloud_result) -> dict:
 
     await save_pa_request(pa_request)
 
+    # Store outcome in Supermemory for future learning
+    from tools.memory_client import store_pa_outcome
+    store_pa_outcome(
+        mrn=mrn,
+        payer=chart.get("insurance", {}).get("payer", ""),
+        medication=f"{med_name} {med_dose}".strip(),
+        status=PAStatusEnum.SUBMITTED.value,
+        justification=narrative,
+    )
+
     submission = {
         "mrn": mrn,
         "status": "submitted",
