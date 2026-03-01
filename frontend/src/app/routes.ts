@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router';
 import { Layout } from './pages/Layout';
+import { Landing } from './pages/Landing';
 import { Home } from './pages/Home';
 import { Patients } from './pages/Patients';
 import { Eligibility } from './pages/Eligibility';
@@ -11,6 +12,7 @@ import { SignIn } from './pages/SignIn';
 import { NotFound } from './pages/NotFound';
 
 export const router = createBrowserRouter([
+  { path: '/landing', Component: Landing },
   { path: '/signin', Component: SignIn },
   {
     path: '/',
