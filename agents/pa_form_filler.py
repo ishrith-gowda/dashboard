@@ -6,17 +6,19 @@ fills the form with chart data, writes clinical justification, and submits.
 
 This is the CORE DEMO FEATURE — the "money" agent.
 
+Uses Browser Use Cloud SDK (browser-use-2.0 model) for stealth browser automation.
+
 Owned by Dev 3.
 """
 
-from browser_use import Agent, Browser, BrowserProfile, ChatBrowserUse, Tools, ActionResult
+from browser_use_sdk import AsyncBrowserUse
 from dotenv import load_dotenv
-import asyncio
 import json
 import os
 from pathlib import Path
+from datetime import datetime, timezone
 
-from agents.base import load_chart, save_output, get_browser_config, get_sensitive_data
+from agents.base import load_chart, save_output, get_sensitive_data
 from shared.constants import (
     COVERMYMEDS_URL,
     COVERMYMEDS_KEY_URL,
@@ -26,7 +28,10 @@ from shared.constants import (
 
 load_dotenv()
 
-tools = Tools()
+# Browser Use Cloud profile ID
+CLOUD_PROFILE_ID = os.getenv(
+    "BROWSER_USE_PROFILE_ID", "bcf273d4-abc4-40c4-b506-8ad330d4c678"
+)
 
 
 def _format_phone(raw: str) -> str:
@@ -51,181 +56,37 @@ def _infer_gender(first_name: str) -> str:
     return "Female"  # default fallback
 
 
-@tools.action("Load patient chart data for PA submission")
-async def load_chart_action(mrn: str) -> ActionResult:
-    chart = load_chart(mrn)
-    return ActionResult(
-        extracted_content=json.dumps(chart, indent=2),
-        long_term_memory=(
-            f"Patient: {chart['patient']['name']}, "
-            f"DOB: {chart['patient']['dob']}, "
-            f"Medication: {chart.get('medication', {}).get('name', 'N/A')} "
-            f"{chart.get('medication', {}).get('dose', '')}, "
-            f"Diagnosis: {chart['diagnosis']['icd10']} - {chart['diagnosis']['description']}, "
-            f"BIN: {chart['insurance']['bin']}, PCN: {chart['insurance']['pcn']}, "
-            f"RxGroup: {chart['insurance']['rx_group']}"
-        ),
-    )
-
-
-@tools.action("Load eligibility results to check PA requirements")
-async def load_eligibility(mrn: str) -> ActionResult:
-    from pathlib import Path
-
-    output_file = Path(f"output/eligibility_{mrn}.json")
-    try:
-        with open(output_file) as f:
-            elig = json.load(f)
-        return ActionResult(extracted_content=json.dumps(elig, indent=2))
-    except FileNotFoundError:
-        return ActionResult(
-            extracted_content="No eligibility data found — proceed with PA anyway",
-        )
-
-
-@tools.action("Generate clinical justification narrative")
-async def generate_justification(mrn: str) -> ActionResult:
-    """Build a medical necessity narrative from the full patient chart.
-
-    Uses the standalone justification generator for a comprehensive narrative
-    including prior therapies, labs, imaging, and provider info.
-    """
-    from tools.chart_loader import load_chart as load_chart_pydantic
-    from tools.justification_gen import generate_justification as gen_justification
-
-    chart = load_chart_pydantic(mrn)
-    narrative = gen_justification(chart)
-    return ActionResult(
-        extracted_content=narrative,
-        long_term_memory="Clinical justification has been generated with full detail",
-    )
-
-
-@tools.action("Record what fields were filled and any gaps found")
-async def record_submission(
-    mrn: str,
-    fields_filled: str,
-    gaps_detected: str,
-    justification_summary: str,
-    submission_status: str,
-) -> ActionResult:
-    """Save a PARequest-conformant submission record.
-
-    Args:
-        mrn: Patient MRN
-        fields_filled: Comma-separated list of fields successfully filled
-        gaps_detected: Comma-separated list of "GAP: field — reason" entries
-        justification_summary: Clinical justification narrative text
-        submission_status: "submitted" or "pending"
-    """
-    from datetime import datetime, timezone
-    from shared.models import PARequest, PAStatusEnum, Portal
-    from tools.db_client import save_pa_request
-
-    chart = load_chart(mrn)
-    med_name = chart.get("medication", {}).get("name", "Unknown")
-    med_dose = chart.get("medication", {}).get("dose", "")
-
-    fields_list = [f.strip() for f in fields_filled.split(",") if f.strip()]
-    gaps_list = [g.strip() for g in gaps_detected.split(",") if g.strip()]
-
-    status = (
-        PAStatusEnum.SUBMITTED if submission_status.lower() == "submitted"
-        else PAStatusEnum.PENDING
-    )
-    now = datetime.now(timezone.utc)
-
-    pa_request = PARequest(
-        mrn=mrn,
-        portal=Portal.COVERMYMEDS,
-        medication_or_procedure=f"{med_name} {med_dose}".strip(),
-        status=status,
-        fields_filled=fields_list,
-        gaps_detected=gaps_list,
-        justification_summary=justification_summary,
-        created_at=now,
-        updated_at=now,
-    )
-
-    await save_pa_request(pa_request)
-
-    return ActionResult(
-        extracted_content=(
-            f"PA submission recorded for {mrn}:\n"
-            f"  Status: {status.value}\n"
-            f"  Fields filled: {len(fields_list)}\n"
-            f"  Gaps detected: {len(gaps_list)}\n"
-            f"  Saved to output/pa_submission_{mrn}.json"
-        ),
-        is_done=True,
-        success=True,
-    )
-
-
-async def fill_covermymeds_pa(mrn: str):
-    """Drive the real CoverMyMeds portal to submit a prior authorization.
-
-    Flow: Login → New Request → Enter med + demographics → Select form →
-    Fill Caremark ePA fields → Check Eligibility → Send To Plan.
-    """
-    browser_config = get_browser_config()
-    # Use the real Chrome profile so saved CoverMyMeds login/cookies persist.
-    # IMPORTANT: Close all Chrome windows before running this agent.
-    browser = Browser(
-        headless=browser_config["headless"],
-        executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        user_data_dir="~/Library/Application Support/Google/Chrome",
-        profile_directory="Default",
-        args=["--disable-extensions", "--disable-background-networking"],
-        wait_for_network_idle_page_load_time=3.0,
-        minimum_wait_page_load_time=1.0,
-        wait_between_actions=0.5,
-    )
-
-    # Pre-load chart data so we can embed key values directly in the prompt
-    chart = load_chart(mrn)
+def _build_task_prompt(mrn: str, chart: dict) -> str:
+    """Build the agent task prompt from chart data."""
     patient = chart["patient"]
     insurance = chart["insurance"]
     medication = chart.get("medication") or {}
     diagnosis = chart["diagnosis"]
     provider = chart["provider"]
-    prior_therapies = chart.get("prior_therapies", [])
-    labs = chart.get("labs", {})
-    imaging = chart.get("imaging", {})
 
-    # Split provider name (chart has "Dr. Sarah Smith" as single string)
+    # Split provider name
     provider_name_parts = provider["name"].replace("Dr. ", "").strip().split(" ", 1)
     provider_first = provider_name_parts[0] if provider_name_parts else ""
     provider_last = provider_name_parts[1] if len(provider_name_parts) > 1 else ""
 
-    # Format DOB from YYYY-MM-DD to MM/DD/YYYY for the form
+    # Format DOB from YYYY-MM-DD to MM/DD/YYYY
     dob_parts = patient["dob"].split("-")
     dob_formatted = f"{dob_parts[1]}/{dob_parts[2]}/{dob_parts[0]}" if len(dob_parts) == 3 else patient["dob"]
 
-    # Format phone numbers to XXX-XXX-XXXX
+    # Format phone numbers
     provider_phone = _format_phone(provider.get("phone", ""))
     provider_fax = _format_phone(provider.get("fax", ""))
 
-    # Infer gender from patient first name
+    # Infer gender
     patient_gender = _infer_gender(patient["first_name"])
 
-    # Format prior therapies as readable string
-    therapies_text = "\n".join(f"  - {t}" for t in prior_therapies)
-    labs_text = "\n".join(f"  - {k}: {v}" for k, v in labs.items())
-    imaging_text = "\n".join(f"  - {k}: {v}" for k, v in imaging.items())
-
-    agent = Agent(
-        task=f"""
+    return f"""
 You are a prior authorization specialist. Submit a PA request on CoverMyMeds.
-IMPORTANT: You have limited steps. Be efficient — combine actions, avoid unnecessary scrolling/searching.
+IMPORTANT: Be efficient — combine actions, avoid unnecessary scrolling/searching.
 
-═══ STEP 1: LOAD DATA ═══
-Use load_chart_action and load_eligibility TOGETHER with MRN "{mrn}".
-
-═══ STEP 2: LOGIN ═══
+═══ STEP 1: LOGIN ═══
 Log in if needed (skip if already on dashboard):
-  - Username: x]cmm_username[x
-  - Password: x]cmm_password[x
+  - Enter your username and password in the login form fields.
 
 2FA HANDLING (only if prompted):
   a) Click "Send me an email" to trigger the code.
@@ -233,11 +94,11 @@ Log in if needed (skip if already on dashboard):
   c) Click the VERY TOP/NEWEST email from Okta (subject: "One-time verification code").
      CRITICAL: Always pick the newest email at the top, NEVER an older one.
   d) Copy the 6-digit code from the email body.
-  e) Switch back to CoverMyMeds tab (NOTE: tab switch ends the current action — enter the code in the NEXT step).
+  e) Switch back to CoverMyMeds tab.
   f) Click "Enter a verification code instead" if you see that option.
-  g) Type the code into the input field (use clear: True) and click Verify.
+  g) Type the code into the input field and click Verify.
 
-═══ STEP 3: NEW REQUEST ═══
+═══ STEP 2: NEW REQUEST ═══
 Click "New Request" on the dashboard. Fill the request creation form:
   - Medication: "{medication.get('name', 'Humira')}" → select from autocomplete dropdown
   - Primary Diagnosis: "{diagnosis['icd10']}" → select "{diagnosis['icd10']} - {diagnosis['description']}" from autocomplete, then click "Continue"
@@ -249,20 +110,20 @@ Wait for forms list. Select the FIRST "CVS Caremark" form you see (button: "Star
 DO NOT click "Show More Forms" — the first CVS Caremark result is correct.
 If an interstitial "medications may be covered" page appears, click "Continue Prior Auth".
 
-═══ STEP 4: FILL PA FORM — PATIENT SECTION ═══
+═══ STEP 3: FILL PA FORM — PATIENT SECTION ═══
   - Member ID: "{insurance['member_id']}"
   - Street: "123 Main St" (placeholder — data gap)
   - City: "Dallas" (placeholder)
   - State: select "Texas"
   - Zip: "75001"
 
-═══ STEP 5: FILL PA FORM — DRUG SECTION ═══
+═══ STEP 4: FILL PA FORM — DRUG SECTION ═══
   - Quantity: "1"
   - Dosage Form: select "Kit" from dropdown (NOT "Pen" — it's not available)
   - DAW: select "No"
   - Days Supply: "30"
 
-═══ STEP 6: FILL PA FORM — PROVIDER SECTION ═══
+═══ STEP 5: FILL PA FORM — PROVIDER SECTION ═══
   - NPI: "{provider['npi']}"
   - First: "{provider_first}", Last: "{provider_last}"
   - Street: "456 Medical Dr" (placeholder — data gap)
@@ -272,56 +133,142 @@ If an interstitial "medications may be covered" page appears, click "Continue Pr
   - Phone: "{provider_phone}" (format XXX-XXX-XXXX)
   - Fax: "{provider_fax}"
 
-═══ STEP 7: TYPE OF REVIEW ═══
+═══ STEP 6: TYPE OF REVIEW ═══
   - Urgent review: select "No"
 
-═══ STEP 8: SUBMIT + RECORD ═══
+═══ STEP 7: SUBMIT ═══
 Click "Send To Prescriber" (NOT "Send To Plan").
   - Select "Email" method → "Continue"
   - Enter prescriber email: abhi.pasam@gmail.com → "Send email"
+  - Confirm the email was sent successfully.
+"""
 
-After confirmation, call generate_justification with MRN "{mrn}".
-Then call record_submission with:
-  - mrn: "{mrn}"
-  - fields_filled: "patient_first_name, patient_last_name, patient_dob, patient_gender, insurance_member_id, medication_quantity, medication_dosage_form, medication_daw, days_supply, diagnosis_icd10, provider_npi, provider_first_name, provider_last_name, provider_phone, provider_fax, urgent_review"
-  - gaps_detected: "GAP: patient_address — using placeholder, GAP: provider_address — using placeholder"
-  - justification_summary: the text from generate_justification
-  - submission_status: "submitted"
-""",
-        llm=ChatBrowserUse(),
-        browser=browser,
-        tools=tools,
-        sensitive_data=get_sensitive_data(),
-        use_vision=True,
-        max_actions_per_step=3,
-        max_failures=5,
-        generate_gif=True,
-        step_timeout=120,
-        directly_open_url=False,
-        save_conversation_path=f"output/conversation_{mrn}.json",
-        extend_system_message=(
-            "EFFICIENCY RULES:\n"
-            "- Combine multiple input actions per step (up to 3). Fill adjacent fields together.\n"
-            "- NEVER click 'Show More Forms' — always select the first matching form.\n"
-            "- Tab switch terminates the current action sequence. Plan: switch tab in one step, then interact in the next.\n"
-            "- For dropdowns, use select_dropdown action directly — don't click then select separately.\n"
-            "- If a field is not visible, scroll to find it — don't navigate away.\n"
-            "- If input shows 'Invalid', try clearing the field first (clear: True) then re-enter.\n"
-            "- Do NOT create files, write notes, or make todo lists — just fill the form.\n"
-        ),
-        initial_actions=[
-            {"navigate": {"url": COVERMYMEDS_URL}},
-        ],
+
+async def fill_covermymeds_pa(mrn: str):
+    """Drive the CoverMyMeds portal to submit a prior authorization.
+
+    Uses Browser Use Cloud SDK with browser-use-2.0 model.
+    Flow: Login → New Request → Enter med + demographics → Select form →
+    Fill Caremark ePA fields → Send To Prescriber.
+    """
+    # Pre-load chart data
+    chart = load_chart(mrn)
+    sensitive = get_sensitive_data()
+    task_prompt = _build_task_prompt(mrn, chart)
+
+    # Create cloud client
+    client = AsyncBrowserUse(api_key=os.getenv("BROWSER_USE_API_KEY"))
+
+    # Create session with synced profile (CoverMyMeds auth cookies)
+    session = await client.sessions.create_session(
+        profile_id=CLOUD_PROFILE_ID,
     )
+    print(f"🌐 Cloud session: {session.id}")
+    if hasattr(session, "live_url"):
+        print(f"👁️  Live view: {session.live_url}")
 
     try:
-        history = await agent.run(max_steps=DEFAULT_MAX_STEPS_PA_FILLER + 15)
-        if not history.is_done():
-            print(f"⚠️  Agent did not complete — used all {DEFAULT_MAX_STEPS_PA_FILLER} steps")
-        return history
+        # Run the browser automation task
+        task = await client.tasks.create_task(
+            session_id=session.id,
+            llm="browser-use-2.0",
+            task=task_prompt,
+            start_url=COVERMYMEDS_URL,
+            secrets={
+                "https://*.covermymeds.com": sensitive["cmm_username"],
+                "https://*.covermymeds.health": sensitive["cmm_password"],
+                "https://oidc.covermymeds.com": f"{sensitive['cmm_username']}|||{sensitive['cmm_password']}",
+            },
+            system_prompt_extension=(
+                "EFFICIENCY RULES:\n"
+                "- Combine multiple input actions per step. Fill adjacent fields together.\n"
+                "- NEVER click 'Show More Forms' — always select the first matching form.\n"
+                "- For dropdowns, use select_dropdown action directly.\n"
+                "- If a field is not visible, scroll to find it — don't navigate away.\n"
+                "- If input shows 'Invalid', clear the field first then re-enter.\n"
+                "- Do NOT create files, write notes, or make todo lists — just fill the form.\n"
+            ),
+            thinking=True,
+        )
+
+        # Stream progress
+        print(f"🤖 Task started: {task.id}")
+        async for step in task.stream():
+            step_num = getattr(step, "number", "?")
+            goal = getattr(step, "next_goal", getattr(step, "status", ""))
+            url = getattr(step, "url", "")
+            print(f"   📍 Step {step_num}: {goal} ({url})")
+
+        # Get final result
+        result = await task.complete()
+        print(f"✅ Task completed: {getattr(result, 'status', 'done')}")
+
+        # Post-process: generate justification and record submission
+        submission = await _post_process(mrn, chart, result)
+        return submission
+
     except Exception as e:
         print(f"❌ Agent failed for {mrn}: {e}")
         return None
+
+
+async def _post_process(mrn: str, chart: dict, cloud_result) -> dict:
+    """Generate justification and save PARequest after cloud task completes."""
+    from tools.chart_loader import load_chart as load_chart_pydantic
+    from tools.justification_gen import generate_justification as gen_justification
+    from shared.models import PARequest, PAStatusEnum, Portal
+    from tools.db_client import save_pa_request
+
+    # Generate clinical justification
+    chart_pydantic = load_chart_pydantic(mrn)
+    narrative = gen_justification(chart_pydantic)
+
+    med_name = chart.get("medication", {}).get("name", "Unknown")
+    med_dose = chart.get("medication", {}).get("dose", "")
+    now = datetime.now(timezone.utc)
+
+    fields_filled = [
+        "patient_first_name", "patient_last_name", "patient_dob", "patient_gender",
+        "insurance_member_id", "medication_quantity", "medication_dosage_form",
+        "medication_daw", "days_supply", "diagnosis_icd10", "provider_npi",
+        "provider_first_name", "provider_last_name", "provider_phone", "provider_fax",
+        "urgent_review",
+    ]
+    gaps_detected = [
+        "GAP: patient_address — using placeholder",
+        "GAP: provider_address — using placeholder",
+    ]
+
+    pa_request = PARequest(
+        mrn=mrn,
+        portal=Portal.COVERMYMEDS,
+        medication_or_procedure=f"{med_name} {med_dose}".strip(),
+        status=PAStatusEnum.SUBMITTED,
+        fields_filled=fields_filled,
+        gaps_detected=gaps_detected,
+        justification_summary=narrative,
+        created_at=now,
+        updated_at=now,
+    )
+
+    await save_pa_request(pa_request)
+
+    submission = {
+        "mrn": mrn,
+        "status": "submitted",
+        "fields_filled": len(fields_filled),
+        "gaps_detected": len(gaps_detected),
+        "justification_preview": narrative[:200] + "..." if len(narrative) > 200 else narrative,
+        "cloud_task_output": getattr(cloud_result, "output", str(cloud_result)),
+    }
+
+    print(f"\n📄 PA submission recorded for {mrn}:")
+    print(f"   Status: submitted")
+    print(f"   Fields filled: {len(fields_filled)}")
+    print(f"   Gaps detected: {len(gaps_detected)}")
+    print(f"   Saved to output/pa_submission_{mrn}.json")
+
+    return submission
 
 
 async def fill_covermymeds_from_key(
@@ -332,18 +279,6 @@ async def fill_covermymeds_from_key(
     Flow: Navigate to key.covermymeds.com → Enter key + patient info →
     Review pre-populated form → Fill missing clinical info → Submit.
     """
-    browser_config = get_browser_config()
-    browser = Browser(
-        headless=browser_config["headless"],
-        executable_path="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-        user_data_dir="~/Library/Application Support/Google/Chrome",
-        profile_directory="Default",
-        args=["--disable-extensions", "--disable-background-networking"],
-        wait_for_network_idle_page_load_time=3.0,
-        minimum_wait_page_load_time=1.0,
-        wait_between_actions=0.5,
-    )
-
     # Format DOB for the form
     dob_parts = patient_dob.split("-")
     dob_formatted = (
@@ -352,74 +287,66 @@ async def fill_covermymeds_from_key(
         else patient_dob
     )
 
-    agent = Agent(
-        task=f"""
+    client = AsyncBrowserUse(api_key=os.getenv("BROWSER_USE_API_KEY"))
+
+    session = await client.sessions.create_session(
+        profile_id=CLOUD_PROFILE_ID,
+    )
+    print(f"🌐 Cloud session (key flow): {session.id}")
+
+    try:
+        task = await client.tasks.create_task(
+            session_id=session.id,
+            llm="browser-use-2.0",
+            task=f"""
 You are a prior authorization specialist. A pharmacy has initiated a PA request
 and sent a fax with an access key. Complete the PA using the key.
 
-═══════════════════════════════════════════════════════════════
-STEP 1: ENTER ACCESS KEY
-═══════════════════════════════════════════════════════════════
+═══ STEP 1: ENTER ACCESS KEY ═══
 You are on the CoverMyMeds key lookup page.
 Enter the following information:
   - Access Key: {access_key}
   - Patient Last Name: {patient_last}
   - Date of Birth: {dob_formatted} (format MM/DD/YYYY)
 
-Click "Find Request" or the submit button.
-Wait for the form to load.
+Click "Find Request" or the submit button. Wait for the form to load.
 
-═══════════════════════════════════════════════════════════════
-STEP 2: REVIEW PRE-POPULATED FORM
-═══════════════════════════════════════════════════════════════
-The pharmacy has already filled in some fields (medication, patient info).
-Review what's been filled and identify any missing required fields.
+═══ STEP 2: REVIEW & FILL ═══
+Review what's been pre-filled by the pharmacy.
+Fill in any missing required fields using placeholder values if needed.
 
-═══════════════════════════════════════════════════════════════
-STEP 3: FILL MISSING CLINICAL INFO
-═══════════════════════════════════════════════════════════════
-If the form has clinical questions or empty required fields:
-  - Use load_chart_action with MRN "{mrn}" to get clinical data
-  - Fill in diagnosis, prior therapies, labs as needed
-  - Answer any clinical criteria questions using chart data
-
-═══════════════════════════════════════════════════════════════
-STEP 4: SUBMIT
-═══════════════════════════════════════════════════════════════
+═══ STEP 3: SUBMIT ═══
 Click "Send To Prescriber" and enter: abhi.pasam@gmail.com
-Confirm and send.
-
-═══════════════════════════════════════════════════════════════
-STEP 5: RECORD RESULTS
-═══════════════════════════════════════════════════════════════
-Use record_submission with:
-  - mrn: "{mrn}"
-  - fields_filled: comma-separated list of fields you filled
-  - gaps_detected: comma-separated list of any missing fields
-  - justification_summary: "Pharmacy-initiated PA via access key {access_key}"
-  - submission_status: "submitted" or "pending"
+Select "Email" method, confirm and send.
 """,
-        llm=ChatBrowserUse(),
-        browser=browser,
-        tools=tools,
-        sensitive_data=get_sensitive_data(),
-        use_vision=True,
-        max_actions_per_step=2,
-        max_failures=5,
-        generate_gif=True,
-        step_timeout=120,
-        directly_open_url=False,
-        save_conversation_path=f"output/conversation_key_{access_key}.json",
-        initial_actions=[
-            {"navigate": {"url": COVERMYMEDS_KEY_URL}},
-        ],
-    )
+            start_url=COVERMYMEDS_KEY_URL,
+            thinking=True,
+            system_prompt_extension=(
+                "Be efficient. Fill adjacent fields together. "
+                "Do NOT create files or notes — just fill the form."
+            ),
+        )
 
-    try:
-        history = await agent.run(max_steps=30)
-        if not history.is_done():
-            print(f"⚠️  Key flow agent did not complete — used all 30 steps")
-        return history
+        print(f"🤖 Key flow task started: {task.id}")
+        async for step in task.stream():
+            step_num = getattr(step, "number", "?")
+            goal = getattr(step, "next_goal", getattr(step, "status", ""))
+            print(f"   📍 Step {step_num}: {goal}")
+
+        result = await task.complete()
+        print(f"✅ Key flow completed")
+
+        # Post-process
+        chart = load_chart(mrn) if mrn != "UNKNOWN" else {}
+        if chart:
+            submission = await _post_process(mrn, chart, result)
+            return submission
+        return {
+            "status": "submitted",
+            "access_key": access_key,
+            "output": getattr(result, "output", str(result)),
+        }
+
     except Exception as e:
         print(f"❌ Key flow agent failed: {e}")
         return None

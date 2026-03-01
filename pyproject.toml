@@ -10,6 +10,7 @@ dependencies = [
     "pydantic>=2.10.0",
     "httpx>=0.28.0",
     "python-dotenv>=1.0.0",
+    "browser-use-sdk>=2.0.15",
 ]
 
 [project.optional-dependencies]
