@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import TVNoise from "@/components/ui/tv-noise";
 import type { WidgetData } from "@/types/dashboard";
-import Image from "next/image";
+
 
 interface WidgetProps {
   widgetData: WidgetData;
@@ -67,15 +67,12 @@ export default function Widget({ widgetData }: WidgetProps) {
           </Badge>
         </div>
 
-        <div className="absolute inset-0 -z-[1]">
-          <Image
-            src="/assets/healthcare_grid.jpg"
-            alt="Healthcare grid background"
-            width={250}
-            height={250}
-            className="size-full object-contain"
-          />
-        </div>
+        <div className="absolute inset-0 -z-[1] opacity-[0.07]"
+          style={{
+            backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+            backgroundSize: '20px 20px',
+          }}
+        />
       </CardContent>
     </Card>
   );
