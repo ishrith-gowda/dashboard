@@ -127,9 +127,7 @@ export function ChatHeader({
             // Desktop variant
             if (chatState.state === "collapsed") {
               return shouldHighlightUnreadMessages
-                ? `${totalUnreadCount} New Message${
-                    totalUnreadCount > 1 ? "s" : ""
-                  }`
+                ? `New Message${totalUnreadCount > 1 ? "s" : ""}`
                 : "Chat";
             }
 
